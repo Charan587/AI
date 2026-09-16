@@ -56,3 +56,5 @@ Code (`main.py`, run verbatim):
 - Truncation error is exactly `3h` (= (h/2)·f''), confirmed against the scan
 - True turnaround is **h = 1e-8**, error 4.86e-8 ≈ `sqrt(eps)`. His five sample points bracketed it without landing on it (best of his five was 1e-10)
 - h = 1e-9, 1e-10, 1e-11 give a **bit-identical slope** — because `(x+h)-x` carries the same relative error 8.27e-8 at all three, which equals the slope's relative error exactly
+
+**Durable note:** [`notes/numeric-differentiation.md`](../notes/numeric-differentiation.md)
