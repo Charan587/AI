@@ -42,7 +42,7 @@ The obvious answer is "as small as possible — that's what the limit says." The
    1e-05      8.000030000054892    3.000e-05
    1e-06      8.000003001384925    3.001e-06
    1e-07      8.000000288888032    2.889e-07
-   1e-08      7.999999951380232    4.862e-08   <-- best
+   1e-08      7.999999951380232    4.862e-08   <-- best of THIS sample (see §5)
    1e-09      8.000000661922968    6.619e-07
    1e-10      8.000000661922968    6.619e-07
    1e-11      8.000000661922968    6.619e-07
@@ -169,9 +169,52 @@ error(h)  ≈   3h        +        eps·|f(x)| / h
       shrinks with h         grows as h shrinks
 ```
 
-A U-curve. The best `h` is where the two arms cross, which lands near `√eps ≈ 1.5e-8`. The scan's empirical best: **`h = 1e-8`, error `4.9e-8`.**
+A U-curve. The two arms cross near `√eps ≈ 1.5e-8`, and that prediction is worth testing rather than trusting.
 
-Five log-spaced sample points (`1e-1, 1e-3, 1e-6, 1e-10, 1e-15`) **straddle that minimum without landing on it** — `1e-6` and `1e-10` sit on opposite arms. Worth remembering on its own: *a handful of log-spaced samples can hide the shape of the thing you're measuring.*
+### The flat bottom is noise, not a minimum
+
+A decade-spaced scan reports `h = 1e-8`, error `4.86e-8`, as "best". **That claim does not survive contact with a denser scan.** 200,000 log-spaced points between `1e-10` and `1e-6`:
+
+```
+  best h   = 1.370756e-09      error = 1.326e-11
+  points beating 4.862e-08: 14,818 of 200,000  (7.4%)
+```
+
+3,666× better, and 7.4% of the range beat the "best". So is `1.37e-09` the good value? No — it cannot even be reproduced from its own printout:
+
+```
+h=1.3707562367213e-09   err=9.370e-07
+h=1.370756e-09          err=2.732e-07
+```
+
+The luck lives past the 8th digit of `h`. Round `h` there and four orders of magnitude of accuracy evaporate. It is one bit pattern where roundoff errors happened to cancel — not a property of the function, not findable without already knowing the answer, not lucky at a different `x`.
+
+**Below the crossover the error stops being a smooth function of `h` and becomes noise. The minimum of noise means nothing.** Quoting the lowest sampled point as "the optimum" is an artifact of where you sampled. (Same trap in week 10, picking a learning rate off a jittery sweep.)
+
+### What is real: make h a power of two
+
+`√eps = 1.4901161193847656e-08` is exactly `2⁻²⁶`:
+
+```
+h            = 1.4901161193847656e-08   (2^-26, exactly representable)
+(x+h)-x      = 1.4901161193847656e-08   <- exactly h, zero representation error
+numerator    = 1.1920928955078125e-07
+8*h          = 1.1920928955078125e-07   <- bit-identical
+slope        = 8.0                      <- error 0.000e+00
+```
+
+Exact. Also exact at `x=3` and `x=2.5`. Two things went right:
+
+1. **`h` is a power of two**, so `x + h` loses nothing in storage — the step taken is the step requested. The `1e-10`-is-really-`1.000000082740371e-10` error source disappears entirely. **This generalises, and it is why serious code uses `2**-26` rather than `1e-8`.** Round in base 10 is ragged in base 2.
+2. The truncation term `3h² = 6.66e-16` is **below half an ULP of 9.0** (`1.78e-15`), so it rounds out of existence and the numerator becomes bit-identical to `8h`. This part is specific to a quadratic — don't expect zero error in general.
+
+In practice:
+
+```python
+h = 2**-26 * max(1.0, abs(x))     # power of two, scaled to the size of x
+```
+
+The scaling matters: `2⁻²⁶` is an enormous step next to `x = 1e-8` and an invisible one next to `x = 1e8`. Compare **relative** error, not absolute, for the same reason.
 
 ### Curiosity: three identical answers
 
