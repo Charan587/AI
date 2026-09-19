@@ -118,3 +118,50 @@ c nudged by h: 4.00001
 - Algebra showing `h` cancels exactly: `(a+h)b - ab = hb`, no limit taken
 - Trace showing the slopes are exact at `h = 1e6`, linked back to rep 1: **truncation error is curvature error**, and `f'' = 0` here
 - Box/slab picture for `a*b*c`, explaining his correct Q4
+
+---
+
+## Rep 3 — Sat 2026-09-19
+
+**Submitted:** handwritten (1 page). Items 3 and 4 not attempted — "didn't know what to do".
+
+### His work, verbatim
+
+```
+Rep 3
+1) e = a*b        d = e+c       L = d*f
+   at a=2.0, b=-3.0, c=10.0, f=-2.0
+   e = 2.0 * -3.0 = -6.0
+   d = -6.0 + 10.0 = 4.0
+   L = 4.0 * -2.0 = -8.0
+
+2) dL/dL = 0
+   dL/dd = f = -2.0
+   dL/de = f = -2.0        [(e+c) written then crossed out]
+   dL/dc = f = -2.0
+   dL/da = ((a*b)+c)*f  =  b*f = -3.0 * -2.0 = 6
+   dL/db = a*f = 2.0 * -2.0 = -4.0
+```
+
+### Grade
+
+| Item | Mark | Note |
+|---|---|---|
+| 1. Forward pass | **HIT** | `e=-6`, `d=4`, `L=-8`, intermediates shown |
+| 2. Six derivatives | **PARTIAL** | Five values correct. `dL/dL = 0` — should be 1. None written in chain form |
+| 3. Numeric verification | **not attempted** | Blocked on: how do you nudge an intermediate that isn't an input? |
+| 4. Cost without reuse | **PARTIAL (2nd pass)** | "requires full graph traversal" — missing the multiplier, *per parameter* |
+
+### Defects
+
+- **`dL/dL = 0`.** Reached for "derivative of a constant is 0". If the seed were 0 every gradient in the graph is 0 — silent, no exception, flat loss forever. Demonstrated with both seeds side by side.
+- **Collapsed the chain.** Wrote `dL/da = b*f` directly rather than `(de/da) × (dL/de)`. Right answer, but it requires seeing the whole path at once — which does not scale and is not what a node can do.
+- Item 3 block was a real conceptual gap, not laziness: nudging `e` and `d` requires entering the graph partway. Corrected with `from_inputs` / `from_e` / `from_d`.
+
+### Correction issued
+
+- `dL/dL = 1` from the definition; seed=0 vs seed=1 trace showing total collapse
+- The six rewritten in `(local) × (already computed above)` form, showing every line reusing the one above
+- **"Every node is an input to the rest of the graph"** — the framing that unblocks item 3 and underpins `backward()`
+- `day3()` written into `main.py` at his request; numeric matches paper to ~1e-10
+- Item 4: N parameters ⇒ N traversals without reuse (124M passes/step for GPT-2 small) vs one with
